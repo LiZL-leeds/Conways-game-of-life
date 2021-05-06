@@ -1,0 +1,65 @@
+#include <stdio.h>
+#include <malloc.h>
+
+int r,c;
+
+int *getDataFromFile(char *path);
+
+
+int main(){
+    int i,j;
+    char *p;
+    p= getDataFromFile("D:\\programming project\\cw2\\test.txt");
+    for ( i = 0; i < r;printf("\n"), i++)
+    {
+        for( j=0; j< c; j++)
+            printf("%d",*p++);
+    }
+    return 0;
+
+    
+}
+
+int *getDataFromFile(char *path){
+    char ch,ch_prev=0;
+    int i=0,n;
+    FILE *fp=NULL;
+    int num;
+    char *p=NULL;
+    if(path==NULL||path[0]==0) return NULL;
+    fp=fopen(path,"r");
+    if(!fp) return NULL;
+    //统计总字数
+
+    while(fscanf(fp,"%d",&num)!=-1)i++;
+    n=i;//统计行数
+
+    fseek(fp,0,SEEK_SET);//重置文件流指针
+    i=0;
+    while(1){
+        ch=fgetc(fp);
+        if (ch==-1){
+            if (ch_prev!='\n')i++;//若最后一行直接换行未结束则总行数加1
+            break;
+        }
+        if(ch=='\n')i++;
+        ch_prev=ch;
+    }
+    r=i;
+    if (n%r!=0)
+    {
+        printf("数据异常\n");
+        return NULL;
+    }
+    c=n/r;
+    //动态数组构建
+    char(*nums)[c]=(char(*)[c])malloc(sizeof(char)*r*c);
+    if(!nums)return NULL;
+    fseek(fp,0,SEEK_SET);//重置文件流指针
+    p=&nums[0][0];
+    while (fscanf(fp,"%d",p++)!=-1);
+    //-----
+    fclose(fp);
+    return &nums[0][0];
+
+}
