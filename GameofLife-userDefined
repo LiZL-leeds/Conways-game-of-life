@@ -1,0 +1,313 @@
+#define _CRT_SECURE_NO_WARNINGS
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<stdbool.h>
+#include <SDL.h>
+
+
+SDL_Window* window;
+SDL_Renderer* renderer;
+SDL_Event e;
+
+
+int singleParticleSize = 6;
+int widthnum;//共有几列
+int heightnum;//共有几行
+int width;
+int height;
+int** cells;
+int** cellsOld;
+int gener;
+
+
+bool quit = false;
+bool isPaused = false;
+bool showGrid = true;
+
+
+
+static void show_menu();
+int init_window(const int Width, int Height);
+void RenderScreen();
+void PopulateCells();
+void CreateArrayBackup();
+int GetNeighbours(int x, int y);
+void StepLife();
+
+
+
+int main(int argc, char** argv)
+{
+    //选择窗口
+    show_menu();
+    int choice;
+    printf("请输入你的选择\n");
+    scanf("%d", &choice);
+    if (choice != 1 && choice != 2)  return  -1;//非法输入
+    switch (choice)
+    {
+    case 1:
+        //自定义长宽，循环次数，随机生成初始状态
+
+        printf("请输入纵向cell个数和横向cell个数/n");
+        scanf("%d%d", &heightnum, &widthnum);
+        if (heightnum <= 0 || widthnum <= 0)  return  -1;//非法输入
+        
+        width = widthnum * singleParticleSize;
+        height = heightnum * singleParticleSize;
+        
+        printf("请输入循环次数/n");
+        scanf("%d", &gener);
+        if (gener <= 0) return -1;//非法输入
+        
+        init_window(width, height);//初始化窗口和渲染器
+
+
+
+        //初始化二维数组
+
+
+        cells = (int**)malloc(sizeof(int*) * heightnum); //申请一组一维指针空间。
+        for (int i = 0; i < heightnum; i++)
+            cells[i] = (int*)malloc(sizeof(int) * widthnum);//对于每个一维指针，申请一行数据的空间。
+
+
+        //for (i = 0; i < heightnum; i++)
+            //for (j = 0; j < widthnum; j++)
+                //cells[i][j] == 0; 
+        //输入第i行第j列的数据。其中&p[i][j]也可以写作p[i]+j或者是 *(p+i) + j. 功能相同。
+        //return &cells[x][y];
+
+
+        //创建二维数组cellsOld
+
+        cellsOld = (int**)malloc(sizeof(int*) * heightnum); //申请一组一维指针空间。
+        for (int i = 0; i < heightnum; i++)
+            cellsOld[i] = (int*)malloc(sizeof(int) * widthnum);//对于每个一维指针，申请一行数据的空间。
+
+
+
+
+
+
+        //随机赋值cells数组
+        PopulateCells();
+
+        //循环
+        while (!quit) {
+
+            int g;
+            for (g = 0; g < gener; g++)
+            {
+                while (SDL_PollEvent(&e) != 0) {
+                    if (e.type == SDL_KEYDOWN) {
+                        if (e.key.keysym.sym == SDLK_ESCAPE) {
+                            quit = true;
+                        }
+                    }//esc 退出
+                    if (e.type == SDL_KEYUP) {
+                        if (e.key.keysym.sym == SDLK_SPACE) {//Toggle pause
+                            isPaused = !isPaused;
+                            if (isPaused) {
+                                SDL_SetWindowTitle(window, "Cellular Automata (CWGOL) (PAUSED)");//暂停
+                            }
+                            else {
+                                SDL_SetWindowTitle(window, "Cellular Automata (CWGOL)");//开始
+                            }
+                        }//暂停及开始
+                        if (e.key.keysym.sym == SDLK_f) {//Step forward in time 1 frame
+                            CreateArrayBackup();
+                            StepLife();
+                        }
+                        if (e.key.keysym.sym == SDLK_g) {//Step forward in time 1 frame
+                            showGrid = !showGrid;
+                        }
+
+                        if (e.key.keysym.sym == SDLK_p) {
+                            PopulateCells();
+                        }//重新随机赋值，cellmap初始化
+                    }
+                    if (e.type == SDL_QUIT) {
+                        quit = true;
+                    }
+                }
+
+
+                RenderScreen();
+                SDL_Delay(17);//60 fps
+            }
+        }
+
+
+
+
+
+        break;
+    case 2:
+        //读文件，生成数组，计算长宽
+        break;
+
+    }
+}
+
+
+//主菜单
+static void show_menu() {
+    printf("	______________________________________________________________________________\n");
+    printf("	|---->                       请选择输入你要操作的选择                    <----|\n");
+    printf("	|----> 1: 自定义                                                         <----|\n");
+    printf("	|----> 2：载入文件                                                       <----|\n");
+    printf("	|----> 3：退出                                                           <----|\n");
+    printf("	|_____________________________________________________________________________|\n");
+}
+
+//初始化windows
+int init_window(const int Width, int Height) {
+
+    SDL_Init(SDL_INIT_VIDEO);
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        SDL_Log("Unable to initialize SDL: %s", SDL_GetError());
+        return 1;
+    }
+
+    // Create a window
+
+    window = SDL_CreateWindow(
+        "Conway's game of life",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        Width,
+        Height,
+        SDL_WINDOW_SHOWN | SDL_WINDOW_MOUSE_FOCUS | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_FULLSCREEN);
+
+    if (window == NULL) {
+        // In the case that the window could not be made...
+        printf("Could not create window: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    /* We must call SDL_CreateRenderer in order for draw calls to affect this window. */
+    renderer = SDL_CreateRenderer(window, -1, 0);
+}
+
+
+void RenderScreen() {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0xff);
+    SDL_RenderClear(renderer);
+
+    if (!isPaused) {
+        CreateArrayBackup();
+        StepLife();
+
+    }
+
+    SDL_Rect cell = { 0, 0, 5, 5 };
+    SDL_Rect verticalGrid = { 0, 0, 1, height };
+    SDL_Rect horizontalGrid = { 0, 0, width, 1 };
+    for (int y = 0; y < heightnum; y++) {
+        if (showGrid) {
+            //Horizontal gird-lines
+            SDL_SetRenderDrawColor(renderer, 22, 22, 22, 0xff);
+            horizontalGrid.y = (y * singleParticleSize) - 1;
+            SDL_RenderDrawRect(renderer, &horizontalGrid);
+
+        }
+    }
+    for (int x = 0; x < widthnum; x++) {
+        if (showGrid) {
+            //Vertical grid-lines
+            verticalGrid.x = (x * singleParticleSize) - 1;
+            SDL_RenderDrawRect(renderer, &verticalGrid);
+        }
+
+    }
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 0xff);
+    for (int j = 0; j < heightnum; j++)
+    {
+        for (int i = 0; i < widthnum; i++) {
+            cell.x = i * singleParticleSize;
+            cell.y = j * singleParticleSize;
+            if (cells[j][i] = 1) {
+                SDL_RenderFillRect(renderer, &cell);
+            }
+        }
+    }
+
+}
+
+
+
+
+
+
+//随机生成初始cells地图
+void PopulateCells() {
+
+
+    for (int j = 0; j < heightnum;j++) {
+        for (int i = 0; i < widthnum; i++) {
+            if (rand() % 3 == 1) {
+                cells[j][i] = 1;
+            }
+        }
+    }
+}
+
+
+//将数组数据进行拷贝
+void CreateArrayBackup() {//Use unchanged data when modifying the next generation
+    for (int y = 0; y < heightnum; y++) {
+        for (int x = 0; x < widthnum; x++) {
+            cellsOld[y][x] = cells[y][x];
+        }
+    }
+}
+
+//计算相邻活细胞数
+int GetNeighbours(int x, int y) {//Count the number of alive cells neighbouring a cell
+
+    int count;
+    if (x == 0)
+    {
+        count += cells[y][x + 1];
+        if (y > 0)count += cells[y - 1][x] + cells[y - 1][x + 1];
+        if (y > heightnum - 1)count += cells[y + 1][x] + cells[y + 1][x + 1];
+
+    }
+    else if (x == widthnum - 1)
+    {
+        count += cells[y][x - 1];
+        if (y > 0)count += cells[y - 1][x] + cells[y - 1][x - 1];
+        if (y > height - 1)count += cells[y + 1][x] + cells[y + 1][x - 1];
+
+    }
+    else
+    {
+        count += cells[y][x - 1];
+        count += cells[y][x + 1];
+        if (y > 0)count += cells[y - 1][x] + cells[y - 1][x + 1] + cells[y - 1][x - 1];
+        if (y > heightnum - 1)count += cells[y + 1][x] + cells[y + 1][x + 1] + cells[y + 1][x - 1];
+
+    }
+
+    return count;
+}
+
+
+
+//更新地图
+void StepLife() {//Implement CWGOL rules to iterate array
+    int neighbours = 0;
+    for (int y = 0; y < heightnum; y++) {
+        for (int x = 0; x < widthnum; x++) {
+            neighbours = GetNeighbours(x, y);
+            if (neighbours == 3) {
+                cells[y][x] = 1;
+            }
+            else if (neighbours < 2 || neighbours > 3) {
+                cells[y][x] = 0;
+            }
+        }
+    }
+}
