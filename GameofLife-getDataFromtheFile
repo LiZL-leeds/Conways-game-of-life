@@ -1,0 +1,73 @@
+int count_heightnum(const char *path){
+    char ch,ch_prev=0;
+    int i=0,n;
+    FILE *fp=NULL;
+    int num,*p=NULL;
+    if(path==NULL||path[0]==0){
+    	printf("文件路径输入错误\n");
+    	return -1;
+	}
+	
+    fp=fopen(path,"r");
+    if(!fp){
+    	printf("无文件\n");
+    	return -1;
+	} 
+	
+    //统计总字数
+    while(fscanf(fp,"%d",&num)!=-1)i++;
+    n=i;
+	//统计行数
+    fseek(fp,0,SEEK_SET);//重置文件流指针
+    i=0;
+    while(1){
+        ch=fgetc(fp);
+        if (ch==-1){
+            if (ch_prev!='\n')i++;//若最后一行直接换行未结束则总行数加1
+            break;
+        }
+        if(ch=='\n')i++;
+        ch_prev=ch;
+    }
+    heightnum=i;
+    if (n%heightnum!=0)
+    {
+        printf("数据异常\n");
+        return -1;
+    }
+    widthnum=n/heightnum;
+    
+    WIDTH = widthnum*singleParticleSize;
+            HEIGHT = heightnum*singleParticleSize;
+    		//get data from the file
+    		//创建数组并全部初始化为0 
+	  cells = (int**)malloc(sizeof(int*) * heightnum); 
+	  for (int i = 0; i < heightnum; i++)
+         cells[i] = (int*)malloc(sizeof(int) * widthnum);
+            //数组cells 
+	  cellsOld = (int**)malloc(sizeof(int*) * heightnum); 
+	  for (int i = 0; i < heightnum; i++)
+         cellsOld[i] = (int*)malloc(sizeof(int) * widthnum);
+    for (int i = 0; i < heightnum; i++){
+		     for (int j = 0; j < widthnum; j++){
+              cellsOld[i][j] = 0; 
+		    }
+	   }//数组cellsOld    		
+    		
+    		//将文件中的数据输入数组 
+		FILE *fp=NULL;			 
+    fp=fopen("D:\\programming project\\cw2\\test.txt","r");
+     
+    for (int i=0; i<heightnum;i++){
+        for(int j=0; j<widthnum;j++){
+    		    fscanf(fp,"%d",&cells[i][j]);
+    				if(cells[i][j]!=1&&cells[i][j]!=0) {
+    					printf("文件中含非0和1的数字或字符\n");
+    					return -1;
+				}
+			}
+		}
+    
+    
+    fclose(fp);
+} 
