@@ -1,0 +1,112 @@
+//测试用例
+//写用例判断和将所有用例均写入suite中
+
+#include <assert.h>
+#include <setjmp.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "CuTest.h"
+
+
+int a, b;
+int heightnum;
+int widthnum;
+int GetNeighbours(int x, int y);
+//file中边角的测试及输入非法数字的测试
+void GetNeighboursTestCaseU(CuTest* tc)
+{
+    
+    
+    CuAssert(tc, "\r\n not pass", 2==GetNeighbours(0, 0));
+    CuAssert(tc, "\r\n not pass", 1==GetNeighbours(0, 4));
+    CuAssert(tc, "\r\n not pass", 2==GetNeighbours(3, 0));
+    CuAssert(tc, "\r\n not pass", 1==GetNeighbours(3, 4));
+    CuAssert(tc, "\r\n not pass", 6==GetNeighbours(1, 1));
+    CuAssert(tc, "\r\n not pass", -1==GetNeighbours(-1, 0));
+    CuAssert(tc, "\r\n not pass", -1==GetNeighbours(4, 7));
+}
+void GetNeighboursTestCaseS(CuTest* tc)
+{
+    CuAssert(tc, "\r\n not pass", -1==GetNeighbours(-1, 0));
+    CuAssert(tc, "\r\n not pass", -1==GetNeighbours(2, -3));
+    CuAssert(tc, "\r\n not pass", -1==GetNeighbours(9, 1));
+    CuAssert(tc, "\r\n not pass", -1==GetNeighbours(2, 7));
+}
+
+
+
+CuSuite* GetNeighboursSuite(void)
+{
+    CuSuite* suite = CuSuiteNew();
+    SUITE_ADD_TEST(suite, GetNeighboursTestCaseU);
+    SUITE_ADD_TEST(suite, GetNeighboursTestCaseS);
+    return suite;
+}
+
+
+
+
+
+
+int GetNeighbours(int x, int y) {//Count the number of alive cells neighbouring a cell
+    heightnum=4;
+    widthnum=5;
+    int cellsOld[4][5]={ {0,1,1,0,0}, {1,0,0,1,0}, {1,1,1,1,1}, {1,0,0,1,0} };
+
+    int count = 0;
+    if(x<0||x>=heightnum||y<0||y>=widthnum){
+        return -1;
+    }
+    
+    if(y-1>=0){
+    	if(cellsOld[y-1][x]==1){
+    		count++;
+		}
+	}
+    if(y+1<heightnum){
+    	if(cellsOld[y+1][x]==1){
+    		count++;
+
+		}
+	}
+	if(x-1>=0){
+    	if(cellsOld[y][x-1]==1){
+    		count++;
+
+		}
+	}
+	if(x+1<widthnum){
+    	if(cellsOld[y][x+1]==1){
+    		count++;
+
+		}
+	}
+	if((y-1>=0)&&(x-1>=0)){
+    	if(cellsOld[y-1][x-1]==1){
+    		count++;
+
+		}
+	}
+	if((y+1<heightnum)&&(x-1>=0)){
+    	if(cellsOld[y+1][x-1]==1){
+    		count++;
+
+		}
+	}
+	if((y-1>=0)&&(x+1<widthnum)){
+    	if(cellsOld[y-1][x+1]==1){
+    		count++;
+
+		}
+	}
+	if((y+1<heightnum)&&(x+1<widthnum)){
+    	if(cellsOld[y+1][x+1]==1){
+    		count++;
+
+		}
+	}
+
+	return count;
+}
